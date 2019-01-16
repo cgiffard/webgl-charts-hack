@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+	  <head>
+		    <meta charset=utf-8>
+		    <title>WebGL Rendering Test</title>
+        <meta http-equiv="refresh" content="5" />
+		    <style>
+		     body {
+             margin: 0;
+             background-color: #292730;
+         }
+			   canvas { width: 100%; height: 100% }
+		    </style>
+	  </head>
+	  <body>
+		    <script src="three.min.js"></script>
+		    <script>
+		     var scene = new THREE.Scene();
+         var camera = new THREE.OrthographicCamera(
+             window.innerWidth / -2,
+             window.innerWidth / 2,
+             window.innerHeight / -2,
+             window.innerHeight / 2,
+             0.1,
+             9000
+         );
+
+         scene.background = new THREE.Color(0x292730);
+
+         var renderer = new THREE.WebGLRenderer({ antialias: true });
+         renderer.setSize( window.innerWidth, window.innerHeight );
+         document.body.appendChild( renderer.domElement );
+
+         camera.position.z = 1000;
+
+         var axisMaterial = new THREE.LineBasicMaterial( { color: 0x595760, linewidth: 4 } );
+         var axisShadowMaterial = new THREE.LineBasicMaterial( { color: 0x191720, linewidth: 40  } );
+         var bgTickMaterial = new THREE.LineBasicMaterial( { color: 0x393740, linewidth: 1 } );
+
+         // Define region
+         var padding = 20;
+         var yAxisPoints = 10;
+         var tickWidth = 20;
+         var xAxisPoints = 10;
+         var shadowOffset = 3;
+
+         // Region
+
+         let regionTop = padding - ((window.innerHeight / 2));
+         let regionBottom = ((window.innerHeight / 2) - padding);
+         let regionLeft = padding - ((window.innerWidth / 2));
+         let regionRight = ((window.innerWidth / 2)) - padding;
+         let regionHeight = regionBottom - regionTop;
+         let regionWidth = regionRight - regionLeft;
+         let xTickSpacing = regionWidth / xAxisPoints;
+         let ytickSpacing = regionHeight / yAxisPoints;
+
+         var axisGeometry = new THREE.Geometry();
+         axisGeometry.vertices.push(new THREE.Vector3(regionLeft, regionTop, 100));
+         axisGeometry.vertices.push(new THREE.Vector3(regionLeft, regionBottom, 100));
+         axisGeometry.vertices.push(new THREE.Vector3(regionRight, regionBottom, 100));
+         var axisLine = new THREE.Line( axisGeometry, axisMaterial );
+
+         scene.add(axisLine);
+
+         var axisShadowGeometry = new THREE.Geometry();
+         axisShadowGeometry.vertices.push(new THREE.Vector3(regionLeft + shadowOffset, regionTop + shadowOffset, 10));
+         axisShadowGeometry.vertices.push(new THREE.Vector3(regionLeft + shadowOffset, regionBottom + shadowOffset, 10));
+         axisShadowGeometry.vertices.push(new THREE.Vector3(regionRight + shadowOffset, regionBottom + shadowOffset, 10));
+         var axisShadowLine = new THREE.Line( axisShadowGeometry, axisShadowMaterial );
+
+         scene.add(axisShadowLine);
+
+         for (let v = 0; v < yAxisPoints; v ++) {
+             let tickAxisGeometry = new THREE.Geometry();
+
+             tickAxisGeometry.vertices.push(new THREE.Vector3(
+                 regionLeft, regionTop + (ytickSpacing * v), 100) );
+
+             tickAxisGeometry.vertices.push(new THREE.Vector3(
+                 regionLeft + tickWidth, regionTop + (ytickSpacing * v), 100) );
+
+             let yTickAxisLine = new THREE.Line( tickAxisGeometry, axisMaterial );
+
+             scene.add(yTickAxisLine);
+
+             let tickAxisShadowGeometry = new THREE.Geometry();
+
+             tickAxisShadowGeometry.vertices.push(new THREE.Vector3(
+                 regionLeft + shadowOffset, regionTop + (ytickSpacing * v) + shadowOffset, 10) );
+
+             tickAxisShadowGeometry.vertices.push(new THREE.Vector3(
+                 regionLeft + tickWidth + shadowOffset, regionTop + (ytickSpacing * v) + shadowOffset, 10) );
+
+             let yTickAxisShadowLine = new THREE.Line( tickAxisShadowGeometry, axisShadowMaterial );
+
+             scene.add(yTickAxisShadowLine);
+
+             let bgTickGeometry = new THREE.Geometry();
+
+             bgTickGeometry.vertices.push(new THREE.Vector3(
+                 regionLeft, regionTop + (ytickSpacing * v) + shadowOffset, -1) );
+
+             bgTickGeometry.vertices.push(new THREE.Vector3(
+                 regionRight, regionTop + (ytickSpacing * v) + shadowOffset, -1) );
+
+             let yBgTickAxisLine = new THREE.Line( bgTickGeometry, bgTickMaterial );
+
+             scene.add(yBgTickAxisLine);
+         }
+
+         // paint in x axis
+
+         for (let v = 1; v <= xAxisPoints; v ++) {
+             let tickAxisGeometry = new THREE.Geometry();
+
+             tickAxisGeometry.vertices.push(new THREE.Vector3(
+                 regionLeft + (xTickSpacing * v), regionBottom - tickWidth, 100) );
+
+             tickAxisGeometry.vertices.push(new THREE.Vector3(
+                 regionLeft + (xTickSpacing * v), regionBottom, 100) );
+
+             let xTickAxisLine = new THREE.Line( tickAxisGeometry, axisMaterial );
+
+             scene.add(xTickAxisLine);
+
+             let tickAxisShadowGeometry = new THREE.Geometry();
+
+             tickAxisShadowGeometry.vertices.push(new THREE.Vector3(
+                 regionLeft + (xTickSpacing * v) + shadowOffset, regionBottom - tickWidth + shadowOffset, 10) );
+
+             tickAxisShadowGeometry.vertices.push(new THREE.Vector3(
+                 regionLeft + (xTickSpacing * v) + shadowOffset, regionBottom + shadowOffset, 10) );
+
+             let xTickAxisShadowLine = new THREE.Line( tickAxisShadowGeometry, axisShadowMaterial );
+
+             scene.add(xTickAxisShadowLine);
+
+             let bgTickGeometry = new THREE.Geometry();
+
+             bgTickGeometry.vertices.push(new THREE.Vector3(
+                 regionLeft + (xTickSpacing * v), regionTop, -1) );
+
+             bgTickGeometry.vertices.push(new THREE.Vector3(
+                 regionLeft + (xTickSpacing * v), regionBottom, -1) );
+
+             let xBgTickAxisLine = new THREE.Line( bgTickGeometry, bgTickMaterial );
+
+             scene.add(xBgTickAxisLine);
+         }
+
+         var time = 0;
+         const samples = [];
+         const mouseX = [];
+         const mouseY = [];
+         const maxSamples = 1000;
+         const minimumYMax = 100;
+
+         let mousePosY = 0;
+         window.addEventListener("mousemove", (evt) => {
+             mousePosY = evt.clientY;
+
+             mouseX.push(evt.clientX);
+             mouseY.push(evt.clientY);
+
+             if (mouseX.length > maxSamples) {
+                 mouseX.shift();
+             }
+
+             if (mouseY.length > maxSamples) {
+                 mouseY.shift();
+             }
+         });
+
+         function getSamples() {
+             time += 16;
+             //const sampleValue = (Math.sin(samples.length / (regionHeight / 10)) + Math.cos(samples.length / (regionWidth / 100) * (time % 100000) / 10000)) * 100;
+             samples.push(Math.cos(time / 100) * 40 + (Math.random() * 20) + Math.sin(time / 1000) * 100);// sampleValue);
+
+             if (samples.length > maxSamples) {
+                 samples.shift();
+             }
+
+             return scaleSet(samples);
+         }
+
+         function scaleSet(set) {
+             var minValue = Math.min(...set);
+             var adjusted = set.map((sample) => sample - minValue);
+             var maxValue = Math.max(...adjusted, minimumYMax);
+             var scaled   = adjusted.map((sample) => sample / maxValue);
+
+             return scaled;
+         }
+
+         function renderSet(samples, colour) {
+             var color = new THREE.Color(colour);
+
+             var lineMaterial = new THREE.LineBasicMaterial( { color: color, linewidth: 3 } );
+             var lineGeometry = new THREE.Geometry();
+             var lineShadowGeometry = new THREE.Geometry();
+
+             let xPointOffset = regionWidth / samples.length;
+
+             for (let i = 0; i < samples.length; i ++) {
+                 const x = lastx = regionLeft + (xPointOffset * i);
+                 const y = lasty = regionBottom - (regionHeight * (1 - samples[i]));
+
+                 lineGeometry.vertices.push(new THREE.Vector3( x, y, 0.1) );
+                 lineShadowGeometry.vertices.push(new THREE.Vector3( x + shadowOffset, y + shadowOffset, 0) );
+             }
+
+             var line = new THREE.Line( lineGeometry, lineMaterial );
+             var lineShadow = new THREE.Line( lineShadowGeometry, axisShadowMaterial );
+
+             return [line, lineShadow];
+         }
+
+         function animate(time = 0) {
+             const sceneObjects = [
+                 ...renderSet(getSamples(), 'red'),
+                 ...renderSet(scaleSet(mouseX), 'lime'),
+                 ...renderSet(scaleSet(mouseY), 'skyblue')
+             ];
+
+             sceneObjects.forEach((object) => scene.add(object));
+
+             requestAnimationFrame( animate );
+	           renderer.render( scene, camera );
+             sceneObjects.forEach((object) => scene.remove(object));
+         }
+         animate();
+
+		    </script>
+	  </body>
+</html>
